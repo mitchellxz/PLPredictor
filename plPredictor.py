@@ -155,10 +155,18 @@ class MainWindow(QMainWindow):
         ynew = model.predict(Xnew)
 
         predicted_class = ynew[0]
+        
+        outcome_mapping = {
+            0: away_team_name,
+            1: "draw",
+            2: home_team_name
+        }
+        
+        expected_outcome = outcome_mapping.get(predicted_class)
 
         print("Home Team: ", home_team_name)
         print("Away Team: ", away_team_name)
-        print("Predicted Outcome: ", predicted_class)
+        print("Predicted Outcome: ", expected_outcome)
         
 
 
