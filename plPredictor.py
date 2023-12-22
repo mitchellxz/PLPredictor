@@ -56,29 +56,58 @@ class MainWindow(QMainWindow):
         layout.addWidget(button)
         
         button.pressed.connect(self.action)
+
+        self.df = self.loadData()
+        self.label, self.features = self.preprocess(self.df)
+        self.model = self.trainingTesting(self.df, self.label, self.features)
         
+        self.setWindowTitle("FTGH vs FTR")
+        self.plot_fthg_vs_ftr()
     
+  
+    def plot_fthg_vs_ftr(self):
+        ftr_categories = self.df['FTR'].unique()
+        num_categories = len(ftr_categories)
+
+        fig, axs = plt.subplots(1, 2, figsize=(12, 6), sharey=True)
+
+        for i, feature in enumerate(['AS', 'HS']):
+            ax = axs[i]
+            ax.set_title(f'{feature} by Full Time Result (FTR)')
+            ax.set_xlabel(f'{feature}')
+            ax.set_ylabel('Frequency')
+
+            for ftr in ftr_categories:
+                ax.hist(self.df[self.df['FTR'] == ftr][feature], bins=15, alpha=0.5, label=f'FTR: {ftr}')
+
+            ax.legend()
+            ax.grid(axis='y', alpha=0.5)
+
+        plt.tight_layout()
+        plt.show()
+
     def action(self):
-        self.combobox1.currentText()
-        self.combobox2.currentText()
-        
-        self.loadData()
+        home_team_name = self.combobox1.currentText()
+        away_team_name = self.combobox2.currentText()
+
+        self.results(home_team_name, away_team_name, self.features, self.model)
 
     def loadData(self):
         csv_url = 'https://www.football-data.co.uk/mmz4281/2324/E0.csv'
         df = pd.read_csv(csv_url)
         
-        self.preprocess(df)
-                
+        return df
+
+
     def preprocess(self, df):
-        columns_to_keep = ['HomeTeam', 'AwayTeam', 'FTHG', 'FTAG', 'FTR']
+        columns_to_keep = ['HomeTeam', 'AwayTeam', 'FTHG', 'FTAG', 'FTR', 'HS', 'AS']
         df = df[columns_to_keep].copy()
 
         #Replace 'm in Nott'm Forest
         df['HomeTeam'] = df['HomeTeam'].str.replace("'m", "ingham")
         df['AwayTeam'] = df['AwayTeam'].str.replace("'m", "ingham")
 
-        df.to_csv(r'C:\Users\Mitchell (School)\Desktop\PythonCSVFiles\PLList.csv', encoding='utf-8-sig', index = False)
+        df.to_csv(r'CSVFiles\PLList_pre.csv', encoding='utf-8-sig', index = False)
 
         df = pd.get_dummies(df, columns=['HomeTeam'], prefix=['HomeTeam'])
         df = pd.get_dummies(df, columns=['AwayTeam'], prefix=['AwayTeam'])
@@ -95,38 +124,65 @@ class MainWindow(QMainWindow):
         print('if draw the label is ', df['FTR'][2])
 
         label = df['FTR']
-        features = df.iloc[:,3:]
+        features = df.iloc[:,0:]
 
-        df.to_csv(r'C:\Users\Mitchell (School)\Desktop\PythonCSVFiles\PLList.csv', encoding='utf-8-sig', index = False)
+        df.to_csv(r'CSVFiles\PLList.csv', encoding='utf-8-sig', index = False)
+
+        features.to_csv(r'CSVFiles/featureslist.csv', encoding='utf-8-sig', index=False)
         
-        self.trainingTesting(df, label, features)
-        
+        label.to_csv(r'CSVFiles/labellist.csv', encoding='utf-8-sig', index=False)
+
+        return label, features
+    
+
+
     def trainingTesting(self, df, label, features):
-        y=np.ravel(label)
+        from sklearn.naive_bayes import MultinomialNB
+        from sklearn.metrics import accuracy_score
+        from sklearn.model_selection import StratifiedKFold
+        import numpy as np
+
+        y = np.ravel(label)
         X = features
-        
-        cv = LeaveOneOut()
+        cv = StratifiedKFold(n_splits=10)
 
-        model = LogisticRegression(multi_class='multinomial', solver='lbfgs')
-        model.fit(X, y)
+        model = MultinomialNB()
 
+        accuracies = []  # List to store accuracies for each fold
 
-        scores = cross_val_score(model, X, y, scoring='accuracy', cv=cv, n_jobs=-1)
-        print(sqrt(mean(absolute(scores))))
+        self.predictScores(X)
 
-        predicted = cross_val_predict(model, X, y, cv=cv)
+        for train_index, test_index in cv.split(X, y):
+            X_train, X_test = X.iloc[train_index], X.iloc[test_index]
+            y_train, y_test = y[train_index], y[test_index]
 
-        conf_matrix = confusion_matrix(y, predicted)
+            model.fit(X_train, y_train)
 
-        precision_scores = []
-        for i in range(len(conf_matrix)):
-            true_positives = conf_matrix[i, i]
-            false_positives = sum(conf_matrix[j, i] for j in range(len(conf_matrix)) if j != i)
-            precision = true_positives / (true_positives + false_positives)
-            precision_scores.append(precision)
-        
-        self.results(features, model)
-        
+            # Make predictions on the test set
+            predictions = model.predict(X_test)
+
+            # Evaluate the model
+            accuracy = accuracy_score(y_test, predictions)
+            accuracies.append(accuracy)
+
+        overall_accuracy = np.mean(accuracies)
+        print(f"Overall Accuracy: {overall_accuracy}")
+
+        return model
+
+    #wip
+    def predictScores(self, X):
+        average_fthg = X.iloc[:, 0].mean()
+        print(f"Average of FTHG column: {average_fthg}")
+
+        average_ftag = X.iloc[:, 1].mean()
+        print(f"Average of FTAG column: {average_ftag}")
+
+        totalavg = (average_ftag + average_fthg)
+        print(f"total average: {totalavg}") 
+
+        print (average_fthg / totalavg)
+        print (average_ftag / totalavg) 
         
     def preprocess_team_name(self, team_name):
         return team_name.replace("'m", "ingham")
@@ -134,7 +190,6 @@ class MainWindow(QMainWindow):
 
     def generate_features_for_match(self, home_team_name, away_team_name, columns):
         match_data = pd.DataFrame(columns=columns)
-
         match_data.loc[0] = 0
 
         home_team_name = self.preprocess_team_name(home_team_name)
@@ -145,12 +200,11 @@ class MainWindow(QMainWindow):
 
         return match_data
     
-    def results(self, features, model):
-        home_team_name = self.combobox1.currentText()
-        away_team_name = self.combobox2.currentText()
 
-        columns = features.columns
-        Xnew = self.generate_features_for_match(home_team_name, away_team_name, columns)
+    def results(self, home_team_name, away_team_name, features, model):
+
+        Xnew = self.generate_features_for_match(home_team_name, away_team_name, features.columns)
+        
 
         ynew = model.predict(Xnew)
 
@@ -163,12 +217,12 @@ class MainWindow(QMainWindow):
         }
         
         expected_outcome = outcome_mapping.get(predicted_class)
-
+        
+        
         print("Home Team: ", home_team_name)
         print("Away Team: ", away_team_name)
         print("Predicted Outcome: ", expected_outcome)
-        
-
+    
 
 app = QApplication(sys.argv)
 
