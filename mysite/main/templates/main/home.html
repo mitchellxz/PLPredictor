@@ -1,0 +1,18 @@
+{% extends 'main/base.html' %}
+
+{% block content %}
+    <h1>Home Page1</h1>
+
+    <form method="post" action="{% url 'index' %}">
+        {% csrf_token %}
+        
+        <label for="match_select">Select a Match:</label>
+        <select name="match_select" id="match_select">
+            {% for match in matches %}
+                <option value="{{ match.id }}">{{ match }}</option>
+            {% endfor %}
+        </select>
+
+        <input type="submit" value="Submit">
+    </form>
+{% endblock %}
