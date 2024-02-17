@@ -1,0 +1,25 @@
+<html>
+    <head>
+        <title>PL PREDICTOR</title>
+        {% load static %}
+        <link rel="stylesheet" href="/static/main/css/pico.sand.css" />
+        <style>
+            :root {
+                text-align: center;
+                max-width: 600px;
+                margin: 0 auto;
+                align-items: center;
+                justify-content: center;
+                margin-top: 20px;
+            }
+        </style>
+    </head>
+
+    <body>
+        <div id = "content", name = "content">
+       {% block content %}
+       
+       {% endblock %}
+       </div>
+    </body>
+</html>

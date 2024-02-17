@@ -1,0 +1,27 @@
+{% extends 'main/base.html' %}
+
+{% block content %}
+    <h1>Results</h1>
+
+    {% if home_team and away_team %}
+        <p>Home Team: {{ home_team }}</p>
+        <p>Away Team: {{ away_team }}</p>
+
+        {% if expected_outcome %}
+            <h3>Expected Winner</h3>
+            <p>{{ expected_outcome }}</p>
+        {% else %}
+            <p>No results available.</p>
+        {% endif %}
+
+    {% else %}
+        <p class="error-message">{{ error_message }}</p>
+    {% endif %}
+
+    <form method="post" action="{% url 'home' %}">
+        {% csrf_token %}
+        <input type="hidden" name="home_team" value="{{ home_team }}">
+        <input type="hidden" name="away_team" value="{{ away_team }}">
+        <input type="submit" value="Back to Team Selection">
+    </form>
+{% endblock %}

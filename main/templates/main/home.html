@@ -1,0 +1,25 @@
+{% extends 'main/base.html' %}
+
+{% block content %}
+    <h2>Team Selection</h2>
+
+    <form method="post" action="{% url 'results' %}">
+        {% csrf_token %}
+
+        <label for="home_team_select">Select a Home Team:</label>
+        <select name="home_team_select" id="home_team_select">
+            {% for home_team in columns %}
+                <option value="{{ home_team }}">{{ home_team }}</option>
+            {% endfor %}
+        </select><br><br>
+
+        <label for="away_team_select">Select an Away Team:</label>
+        <select name="away_team_select" id="away_team_select">
+            {% for away_team in columns %}
+                <option value="{{ away_team }}">{{ away_team }}</option>
+            {% endfor %}
+        </select><br><br>
+
+        <input type="submit" value="Submit">
+    </form>
+{% endblock %}
