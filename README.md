@@ -45,7 +45,7 @@ DATABASES = {
     'NAME': 'database_name',
     'USER': 'username',
     'PASSWORD': 'password',
-    'HOST': 'localhost,
+    'HOST': 'localhost',
   }
 }
 ```
